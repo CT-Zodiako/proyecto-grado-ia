@@ -10,9 +10,9 @@ Estos archivos fueron generados desde `modelo_medicina.ipynb` para alimentar la 
 
 ## Archivos
 
-- `model.joblib`: pipeline del mejor modelo seleccionado (actualmente **Ridge v2**).
+- `model.joblib`: pipeline del mejor modelo seleccionado (actualmente **Lasso v2**, benchmark limpio post-corrección de leakage del 2026-07-13).
 - `model_v1.joblib`: modelo original Random Forest (2020-2024) para referencia.
-- `model_v2.joblib`: modelo benchmark de la mejora (seleccionado por validación MAE).
+- `model_v2.joblib`: modelo ganador del benchmark de 9 modelos (Lasso, seleccionado por menor MAE de validación).
 - `feature_schema.json`: contrato de entrada para `/predict` (v2 con nuevas variables históricas).
 - `feature_schema_v1.json`: schema original del modelo v1.
 - `feature_schema_v2.json`: schema v2 con las nuevas variables.
