@@ -1,3 +1,4 @@
+import sys
 import streamlit as st
 import pandas as pd
 import json
@@ -6,6 +7,12 @@ import os
 from pathlib import Path
 import plotly.express as px
 import plotly.graph_objects as go
+
+# Asegura que el módulo hermano `diagnostics.py` sea importable sin importar
+# cómo se invoque Streamlit (streamlit run agrega el directorio del script a
+# sys.path, no necesariamente la raíz del repo).
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import diagnostics
 
 # Configuración de la página
 st.set_page_config(
@@ -116,7 +123,7 @@ st.sidebar.markdown("---")
 # Navegación
 page = st.sidebar.radio(
     "Navegación",
-    ["📊 Overview", "📈 EDA", "🔮 Predicción", "📋 Recomendaciones", "✅ Validación", "🤖 Modelos", "🔍 Explicabilidad"]
+    ["📊 Overview", "📈 EDA", "🔮 Predicción", "🩺 Diagnóstico", "📋 Recomendaciones", "✅ Validación", "🤖 Modelos", "🔍 Explicabilidad"]
 )
 
 # ============================================
@@ -534,6 +541,164 @@ elif page == "🔮 Predicción":
                     st.error("❌ Error al realizar la predicción. Verifica que la API esté funcionando.")
     else:
         st.error("❌ No se encontraron datos históricos o el schema de features. Verifica que los archivos existan.")
+
+# ============================================
+# PÁGINA: DIAGNÓSTICO IA
+# ============================================
+elif page == "🩺 Diagnóstico":
+    st.title("Diagnóstico del Programa")
+    st.markdown(
+        "Seleccioná un programa de Medicina y te mostramos cómo le fue, "
+        "por qué le fue así, y qué tan confiable es esa lectura."
+    )
+
+    @st.cache_resource
+    def load_diagnostic_bundle_cached():
+        """Carga una sola vez por sesión el bundle de diagnóstico
+        (coeficientes Lasso + estadísticas del scaler) desde artifacts/."""
+        return diagnostics.load_diagnostic_model_bundle(Path("artifacts"))
+
+    features_df = load_medicina_features_2025()
+
+    if features_df is not None:
+        # Reutiliza el mismo patrón de selector que la página Predicción:
+        # una etiqueta amigable por programa, deduplicada por el ID con más historia.
+        st.subheader("1. ¿Qué programa querés diagnosticar?")
+
+        features_df['etiqueta_programa'] = (
+            features_df['NOMBRE_INSTITUCION'] + " — " +
+            features_df['NOMBRE_MUNICIPIO'] + ", " +
+            features_df['NOMBRE_DEPARTAMENTO']
+        )
+
+        program_counts = features_df.groupby(['etiqueta_programa', 'ID_INSTITUCION', 'ID_PROGRAMA_ACAD']).size().reset_index(name='n_observaciones')
+        opciones = program_counts.sort_values('n_observaciones', ascending=False).drop_duplicates('etiqueta_programa')
+        opciones = opciones.sort_values('etiqueta_programa').reset_index(drop=True)
+
+        etiqueta_diagnostico = st.selectbox(
+            "Programa de Medicina",
+            options=opciones['etiqueta_programa'].tolist(),
+            key="diagnostico_selectbox"
+        )
+
+        seleccion = opciones[opciones['etiqueta_programa'] == etiqueta_diagnostico].iloc[0]
+        id_institucion = seleccion['ID_INSTITUCION']
+        id_programa = seleccion['ID_PROGRAMA_ACAD']
+
+        historial = features_df[
+            (features_df['ID_INSTITUCION'] == id_institucion) &
+            (features_df['ID_PROGRAMA_ACAD'] == id_programa)
+        ].sort_values('AÑO').copy()
+
+        ultimo_registro = historial.iloc[-1]
+
+        # Dos de las 4 variables del Lasso (maximo_historico,
+        # promedio_movil_3_anios) no están persistidas en ningún CSV del
+        # dashboard: se calculan solo en memoria durante el entrenamiento
+        # (ver mejorar_modelo.py::add_new_features). Las recalculamos acá
+        # mismo a partir de la serie histórica ya cargada, replicando
+        # exactamente esa lógica (shift(1) + expanding/rolling), en vez de
+        # asumir que existen como columnas.
+        #
+        # anios_hist se deriva de esta MISMA serie filtrada (en vez de leer
+        # la columna persistida anios_historicos_disponibles) para que haya
+        # una única fuente de verdad: si hubiera una discrepancia entre el
+        # agrupamiento local (por ID_INSTITUCION+ID_PROGRAMA_ACAD) y el valor
+        # persistido, usar dos fuentes distintas podría dejar anios_hist>=1
+        # mientras años_previos quedó vacío, causando un TypeError en
+        # compute_feature_contributions (None - media). Con una sola fuente
+        # esa divergencia es estructuralmente imposible.
+        años_previos = historial.iloc[:-1]
+        anios_hist = len(años_previos)
+        if anios_hist > 0:
+            maximo_historico_valor = float(años_previos['promedio_global_anual'].max())
+            promedio_movil_3_anios_valor = float(años_previos['promedio_global_anual'].tail(3).mean())
+        else:
+            maximo_historico_valor = None
+            promedio_movil_3_anios_valor = None
+
+        st.markdown("---")
+        st.subheader("2. Cómo le fue")
+
+        ultimo_año = int(ultimo_registro['AÑO'])
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("Último año disponible", str(ultimo_año))
+        with col2:
+            st.metric("Promedio de ese año", f"{ultimo_registro['promedio_global_anual']:.2f}")
+
+        if len(historial) > 1:
+            fig_trend = px.line(
+                historial,
+                x='AÑO',
+                y='promedio_global_anual',
+                markers=True,
+                title=f"Evolución de {ultimo_registro['NOMBRE_INSTITUCION']}",
+                labels={'AÑO': 'Año', 'promedio_global_anual': 'PROMEDIO_GLOBAL'}
+            )
+            fig_trend.update_layout(yaxis_range=[100, 200])
+            st.plotly_chart(fig_trend, use_container_width=True)
+
+        st.markdown("---")
+        st.subheader("3. Por qué")
+
+        bundle = load_diagnostic_bundle_cached()
+        row = {
+            "promedio_global_anterior": float(ultimo_registro["promedio_global_anterior"]),
+            "promedio_movil_2_anios": float(ultimo_registro["promedio_movil_2_anios"]),
+            "maximo_historico": maximo_historico_valor,
+            "promedio_movil_3_anios": promedio_movil_3_anios_valor,
+        }
+        narrativa = diagnostics.build_diagnostic_narrative(bundle, row, anios_hist)
+
+        if narrativa["confidence_state"] == diagnostics.ConfidenceState.ZERO:
+            st.info(
+                "ℹ️ **Sin diagnóstico disponible.** Este programa todavía no tiene un "
+                "año anterior con el cual comparar, así que no hay una explicación "
+                "de «por qué» para mostrar todavía."
+            )
+        else:
+            st.markdown(f"**{narrativa['narrative_sentence']}**")
+            with st.expander("Ver análisis de contribución de variables"):
+                contrib_df = pd.DataFrame(narrativa["contributions"])[
+                    ["feature", "raw_value", "contribution"]
+                ]
+                st.dataframe(contrib_df, use_container_width=True)
+                fig_contrib = px.bar(
+                    contrib_df,
+                    x="contribution",
+                    y="feature",
+                    orientation="h",
+                    title="Contribución de cada variable a la predicción"
+                )
+                st.plotly_chart(fig_contrib, use_container_width=True)
+
+        st.markdown("---")
+        st.subheader("4. Qué tan confiable es esto")
+
+        if narrativa["confidence_state"] == diagnostics.ConfidenceState.LOW:
+            st.warning(
+                "⚠️ **Confianza reducida.** Este programa tiene poca historia previa "
+                "(menos de 2 años), así que la estimación es menos confiable que para "
+                "programas con más años de datos."
+            )
+
+        metrics_data = load_metrics()
+        if metrics_data:
+            best_metrics = metrics_data.get("best_test_metrics", {})
+            st.markdown(
+                "Estimación basada en el volumen histórico del programa y el error de "
+                "validación global del modelo (no es un intervalo de confianza estadístico):"
+            )
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("MAE (test)", f"{best_metrics.get('MAE', 0):.2f}")
+            with col2:
+                st.metric("RMSE (test)", f"{best_metrics.get('RMSE', 0):.2f}")
+            with col3:
+                st.metric("R² (test)", f"{best_metrics.get('R2', 0):.3f}")
+    else:
+        st.error("❌ No se encontraron datos históricos. Verificá que los archivos existan.")
 
 # ============================================
 # PÁGINA: RECOMENDACIONES
