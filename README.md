@@ -48,11 +48,19 @@ Construir un sistema que permita:
 │   /metadata       │    │   Overview          │
 │   /predict        │◄───│   EDA               │
 │                   │    │   Predicción        │
-└──────────────────┘    │   Recomendaciones   │
+└──────────────────┘    │   Diagnóstico       │
+                        │   Recomendaciones   │
                         │   Validación        │
+                        │   Modelos           │
                         │   Explicabilidad    │
                         └─────────────────────┘
 ```
+
+> 💡 **En criollo:** el notebook "entrena" el modelo una sola vez y deja los
+> resultados guardados en archivos (los `artifacts/`). La API y el dashboard
+> después solo *leen* esos archivos — no vuelven a entrenar nada cada vez que
+> los abrís. Por eso podés levantar el dashboard sin tener que correr el
+> notebook primero.
 
 ---
 
@@ -66,8 +74,12 @@ Construir un sistema que permita:
 │   │   ├── model_service.py     # Carga del modelo y predicciones
 │   │   └── schemas.py           # Contratos Pydantic
 │   ├── dashboard/
-│   │   └── streamlit_app.py     # Dashboard visual
+│   │   ├── streamlit_app.py     # Dashboard visual (todas las páginas)
+│   │   └── diagnostics.py       # Lógica del diagnóstico IA por programa (sin Streamlit, testeable sola)
 │   └── README.md                # Cómo levantar API + Dashboard
+├── tests/                        # Tests automatizados (pytest)
+│   ├── test_diagnostics.py      # Tests de la lógica de diagnóstico
+│   └── test_streamlit_diagnostico_page.py  # Tests de la página del dashboard
 ├── artifacts/
 │   ├── model.joblib             # Modelo entrenado
 │   ├── feature_schema.json      # Contrato de entrada
@@ -157,6 +169,24 @@ Para más detalles, ver [`app/README.md`](app/README.md).
 
 ---
 
+## ✅ Cómo correr los tests (verificar que todo funciona)
+
+Esto no es obligatorio para usar el dashboard, pero sirve para confirmar que
+el código funciona correctamente antes de tocar algo (por ejemplo después de
+clonar el proyecto o de hacer un cambio).
+
+```bash
+source venv/bin/activate
+pytest tests/ -v
+```
+
+Si todo está bien, vas a ver algo como `30 passed` al final. Estos tests
+cubren tanto la lógica interna del diagnóstico IA como la página completa del
+dashboard (se prueba automáticamente con los 56 programas reales del
+dataset).
+
+---
+
 ## 📊 Métricas principales del modelo
 
 | Métrica | Validación (2024) | Test (2025) |
@@ -170,6 +200,29 @@ Para más detalles, ver [`app/README.md`](app/README.md).
 - **Variables de entrada**: 18 (13 numéricas + 5 categóricas).
 - **Filtro aplicado**: `NBC = 'MEDICINA'` AND `NOMBRE_PROGRAMA_ACAD` contiene `'MEDICINA'`.
 - **Split temporal**: entrenamiento 2020-2023, validación 2024, test 2025.
+
+---
+
+## 🩺 Página de Diagnóstico (nuevo)
+
+Además de predecir un número, el dashboard tiene una página llamada
+**"🩺 Diagnóstico"** pensada para cualquier persona interesada en entender un
+programa de Medicina, no solo para técnicos. Para el programa que elijas, te
+responde tres preguntas en este orden:
+
+1. **¿Cómo le fue?** — el puntaje del último año disponible y cómo veniía la
+   tendencia histórica.
+2. **¿Por qué?** — una frase en español simple explicando qué factor pesó
+   más en esa predicción (por ejemplo, si el techo histórico del programa es
+   alto o si el año anterior vino en baja). Abajo de esa frase hay un detalle
+   técnico opcional para quien quiera profundizar.
+3. **¿Qué tan confiable es esto?** — si el programa tiene poca historia
+   (menos de 2 años de datos), se muestra una advertencia clara explicando
+   por qué la estimación es menos confiable en ese caso.
+
+Esta explicación **no usa la librería SHAP** (a pesar de que el modelo es un
+modelo lineal simple — Lasso — la contribución de cada variable se puede
+calcular de forma exacta con sus coeficientes, sin necesidad de aproximarla).
 
 ---
 
@@ -263,7 +316,9 @@ curl -X POST "http://localhost:8000/predict" \
 
 ## 🔄 Próximos pasos sugeridos
 
-- [ ] Agregar tests automatizados para la API y el servicio.
+- [x] Agregar tests automatizados para el diagnóstico IA y la página del dashboard (`tests/`, 30 tests con pytest).
+- [ ] Agregar tests automatizados para la API (`app/api/`).
+- [ ] Corregir un bug detectado en la página "Predicción": dos variables importantes del modelo (`maximo_historico`, `promedio_movil_3_anios`) no se están enviando a la API, que las reemplaza en silencio por un valor promedio (mediana). Ver detalle en el historial de decisiones del proyecto.
 - [ ] Implementar endpoints adicionales: `/recommend`, `/metrics/model`, `/summary/regions`.
 - [ ] Dockerizar la API y el dashboard.
 - [ ] Integrar gráficos SHAP en el dashboard.
