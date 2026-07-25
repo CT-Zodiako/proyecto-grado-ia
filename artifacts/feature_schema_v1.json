@@ -1,0 +1,48 @@
+{
+  "target": "promedio_global_anual",
+  "numeric_features": [
+    "AÑO",
+    "promedio_global_anterior",
+    "promedio_movil_2_anios",
+    "desviacion_historica_2_anios",
+    "anios_historicos_disponibles"
+  ],
+  "categorical_features": [
+    "NOMBRE_REGION",
+    "NOMBRE_DEPARTAMENTO",
+    "NOMBRE_MUNICIPIO",
+    "NOMBRE_INSTITUCION",
+    "NOMBRE_PROGRAMA_ACAD"
+  ],
+  "all_features": [
+    "AÑO",
+    "promedio_global_anterior",
+    "promedio_movil_2_anios",
+    "desviacion_historica_2_anios",
+    "anios_historicos_disponibles",
+    "NOMBRE_REGION",
+    "NOMBRE_DEPARTAMENTO",
+    "NOMBRE_MUNICIPIO",
+    "NOMBRE_INSTITUCION",
+    "NOMBRE_PROGRAMA_ACAD"
+  ],
+  "excluded_features": [
+    "promedio_global_anual",
+    "promedio_prueba_media",
+    "variacion_anual",
+    "variacion_porcentual",
+    "crecimiento_acumulado_desde_inicio",
+    "mejora_vs_anio_anterior",
+    "disminuye_vs_anio_anterior",
+    "cantidad_evaluados_media_pruebas",
+    "cantidad_evaluados_max_pruebas"
+  ],
+  "excluded_operational_features": [
+    "cantidad_evaluados_media_pruebas",
+    "cantidad_evaluados_max_pruebas"
+  ],
+  "split_strategy": "temporal_preferido_train_2020_2022_valid_2023_test_2024",
+  "clean_model_note": "Modelo limpio pre-SHAP: no usa cantidad_evaluados_* ni variables derivadas del resultado del mismo periodo.",
+  "model_name": "Random Forest",
+  "generated_at_utc": "2026-07-06T22:32:03.075093+00:00"
+}

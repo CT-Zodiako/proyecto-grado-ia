@@ -1,0 +1,48 @@
+{
+  "target": "promedio_global_anual",
+  "numeric_features": [
+    "AÑO",
+    "promedio_global_anterior",
+    "promedio_movil_2_anios",
+    "desviacion_historica_2_anios",
+    "anios_historicos_disponibles",
+    "promedio_movil_3_anios",
+    "desviacion_historica_3_anios",
+    "tasa_crecimiento_anual",
+    "maximo_historico",
+    "minimo_historico",
+    "diferencia_maximo_historico",
+    "anios_desde_inicio",
+    "ranking_departamento"
+  ],
+  "categorical_features": [
+    "NOMBRE_REGION",
+    "NOMBRE_DEPARTAMENTO",
+    "NOMBRE_MUNICIPIO",
+    "NOMBRE_INSTITUCION",
+    "NOMBRE_PROGRAMA_ACAD"
+  ],
+  "excluded_features": [
+    "promedio_global_anual",
+    "promedio_prueba_media",
+    "cantidad_evaluados_media_pruebas",
+    "cantidad_evaluados_max_pruebas",
+    "cantidad_pruebas",
+    "registros_modulo",
+    "variacion_anual",
+    "variacion_porcentual",
+    "crecimiento_acumulado_desde_inicio",
+    "mejora_vs_anio_anterior",
+    "disminuye_vs_anio_anterior",
+    "ID_REGION",
+    "ID_DEPARTAMENTO",
+    "ID_MUNICIPIO",
+    "ID_INSTITUCION",
+    "ID_NBC",
+    "ID_PROGRAMA_ACAD",
+    "NBC"
+  ],
+  "model_name": "Lasso",
+  "split_strategy": "temporal_train_2020_2023_valid_2024_test_2025",
+  "new_features_added": true
+}

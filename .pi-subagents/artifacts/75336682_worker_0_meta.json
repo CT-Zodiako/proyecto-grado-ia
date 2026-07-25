@@ -1,0 +1,37 @@
+{
+  "runId": "75336682",
+  "agent": "worker",
+  "task": "You are a delegated subagent running from a fork of the parent session. Treat the inherited conversation as reference-only context, not a live thread to continue. Do not continue or answer prior messages as if they are waiting for a reply. Your sole job is to execute the task below and return a focused result for that task using your tools.\n\nTask:\nApply a strict filter to the entire Medicina project: NBC='MEDICINA' AND NOMBRE_PROGRAMA_ACAD='MEDICINA'. This replaces the previous filter that only used NBC='MEDICINA'. Update and re-execute everything consistently. Files to edit: `modelo_medicina.ipynb`, `modelo_medicina_executed.ipynb`, `DOCUMENTACION_EJECUCION.md`, `validation_results.json`, `app/api/main.py`, `app/api/model_service.py`, `app/api/schemas.py` if needed, `app/dashboard/streamlit_app.py` if needed, `artifacts/*`, `README_API.md` and `README_DASHBOARD.md` if needed.\n\nRequirements:\n1. In the notebook, change the filter to:\n   ```python\n   solo_medicina = df[\n       df['NBC'].astype(str).str.upper().eq('MEDICINA') &\n       df['NOMBRE_PROGRAMA_ACAD'].astype(str).str.upper().str.contains('MEDICINA')\n   ].copy()\n   ```\n   Update all related markdown and validation cells to reflect that the project is now strictly about programs named MEDICINA.\n2. Re-run all notebook cells with nbclient and save a fresh `modelo_medicina_executed.ipynb`. Update validation outputs (counts, metrics, recommendations) in `validation_results.json`.\n3. Re-export artifacts to `artifacts/` using the new model and recommendations. This includes `model.joblib`, `feature_schema.json`, `metrics.json`, `recomendaciones_programa.csv`, `validation_results.json`, `README_artifacts.md`.\n4. Update `app/api/model_service.py` and `app/api/schemas.py` if categorical values changed. Update `README_API.md` if example values changed.\n5. Update `app/dashboard/streamlit_app.py` to load new recommendations and use new categorical values; adjust README_DASHBOARD.md if needed.\n6. Update `DOCUMENTACION_EJECUCION.md` consistently: all stage explanations, counts, metrics, and examples must match the new strict filter. Add a note explaining why both NBC and program name are used.\n7. Run local import tests for API and dashboard; if API predicts with new model, report a sample prediction.\n8. If Engram save is available, save important decisions/discoveries with project `proyecto-grado-ia` before returning.\n\nBe thorough: do not leave stale metrics or old examples from the previous NBC-only filter in the final notebook or docs. Return concise summary of the new dataset size, model metrics, recommendation counts, and files changed.",
+  "exitCode": 0,
+  "usage": {
+    "input": 34496,
+    "output": 6255,
+    "cacheRead": 2344704,
+    "cacheWrite": 0,
+    "cost": 0,
+    "turns": 16
+  },
+  "model": "kimi-coding/k2p7:off",
+  "attemptedModels": [
+    "kimi-coding/k2p7:off"
+  ],
+  "modelAttempts": [
+    {
+      "model": "kimi-coding/k2p7:off",
+      "success": true,
+      "exitCode": 0,
+      "usage": {
+        "input": 34496,
+        "output": 6255,
+        "cacheRead": 2344704,
+        "cacheWrite": 0,
+        "cost": 0,
+        "turns": 16
+      }
+    }
+  ],
+  "durationMs": 205936,
+  "toolCount": 16,
+  "transcriptPath": "/Users/zodiakomac/DEV/proyecto-grado-ia/.pi-subagents/artifacts/75336682_worker_0_transcript.jsonl",
+  "timestamp": 1783368771488
+}

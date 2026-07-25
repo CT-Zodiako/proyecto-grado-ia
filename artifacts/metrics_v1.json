@@ -1,0 +1,202 @@
+{
+  "best_model": "Random Forest",
+  "target": "promedio_global_anual",
+  "split_strategy": "temporal_preferido_train_2020_2022_valid_2023_test_2024",
+  "split_sizes": {
+    "train": 175,
+    "validation": 68,
+    "test": 63
+  },
+  "model_results": [
+    {
+      "modelo": "Baseline media",
+      "split": "entrenamiento",
+      "MAE": 13.197,
+      "RMSE": 15.863,
+      "R2": 0.0,
+      "n": 175
+    },
+    {
+      "modelo": "Baseline media",
+      "split": "validacion",
+      "MAE": 13.013,
+      "RMSE": 15.475,
+      "R2": -0.015,
+      "n": 68
+    },
+    {
+      "modelo": "Baseline media",
+      "split": "test",
+      "MAE": 12.656,
+      "RMSE": 15.228,
+      "R2": -0.009,
+      "n": 63
+    },
+    {
+      "modelo": "Ridge Regression",
+      "split": "entrenamiento",
+      "MAE": 4.328,
+      "RMSE": 6.37,
+      "R2": 0.839,
+      "n": 175
+    },
+    {
+      "modelo": "Ridge Regression",
+      "split": "validacion",
+      "MAE": 5.948,
+      "RMSE": 7.794,
+      "R2": 0.743,
+      "n": 68
+    },
+    {
+      "modelo": "Ridge Regression",
+      "split": "test",
+      "MAE": 7.553,
+      "RMSE": 9.104,
+      "R2": 0.639,
+      "n": 63
+    },
+    {
+      "modelo": "Decision Tree",
+      "split": "entrenamiento",
+      "MAE": 6.62,
+      "RMSE": 9.568,
+      "R2": 0.636,
+      "n": 175
+    },
+    {
+      "modelo": "Decision Tree",
+      "split": "validacion",
+      "MAE": 6.092,
+      "RMSE": 7.956,
+      "R2": 0.732,
+      "n": 68
+    },
+    {
+      "modelo": "Decision Tree",
+      "split": "test",
+      "MAE": 6.035,
+      "RMSE": 7.991,
+      "R2": 0.722,
+      "n": 63
+    },
+    {
+      "modelo": "Random Forest",
+      "split": "entrenamiento",
+      "MAE": 6.114,
+      "RMSE": 9.164,
+      "R2": 0.666,
+      "n": 175
+    },
+    {
+      "modelo": "Random Forest",
+      "split": "validacion",
+      "MAE": 5.509,
+      "RMSE": 7.305,
+      "R2": 0.774,
+      "n": 68
+    },
+    {
+      "modelo": "Random Forest",
+      "split": "test",
+      "MAE": 5.486,
+      "RMSE": 6.985,
+      "R2": 0.788,
+      "n": 63
+    }
+  ],
+  "best_validation_metrics": {
+    "MAE": 5.509,
+    "RMSE": 7.305,
+    "R2": 0.774,
+    "n": 68
+  },
+  "best_test_metrics": {
+    "MAE": 5.486,
+    "RMSE": 6.985,
+    "R2": 0.788,
+    "n": 63
+  },
+  "validation_summary": {
+    "residual_summary": [
+      {
+        "split": "test",
+        "residuo_medio": 2.846,
+        "residuo_mediano": 3.156,
+        "mae": 5.486,
+        "rmse": 6.985,
+        "n": 63
+      },
+      {
+        "split": "validacion",
+        "residuo_medio": 2.198,
+        "residuo_mediano": 3.109,
+        "mae": 5.509,
+        "rmse": 7.305,
+        "n": 68
+      }
+    ],
+    "generalization_comparison": [
+      {
+        "modelo": "Baseline media",
+        "split": "entrenamiento",
+        "MAE": 13.197,
+        "RMSE": 15.863,
+        "R2": 0.0,
+        "n": 175
+      },
+      {
+        "modelo": "Baseline media",
+        "split": "test",
+        "MAE": 12.656,
+        "RMSE": 15.228,
+        "R2": -0.009,
+        "n": 63
+      },
+      {
+        "modelo": "Baseline media",
+        "split": "validacion",
+        "MAE": 13.013,
+        "RMSE": 15.475,
+        "R2": -0.015,
+        "n": 68
+      },
+      {
+        "modelo": "Random Forest",
+        "split": "entrenamiento",
+        "MAE": 6.114,
+        "RMSE": 9.164,
+        "R2": 0.666,
+        "n": 175
+      },
+      {
+        "modelo": "Random Forest",
+        "split": "test",
+        "MAE": 5.486,
+        "RMSE": 6.985,
+        "R2": 0.788,
+        "n": 63
+      },
+      {
+        "modelo": "Random Forest",
+        "split": "validacion",
+        "MAE": 5.509,
+        "RMSE": 7.305,
+        "R2": 0.774,
+        "n": 68
+      }
+    ],
+    "recommendation_category_counts": {
+      "desempeno_bajo": 18,
+      "seguimiento_regular": 14,
+      "revisar_incertidumbre_modelo": 11,
+      "tendencia_descendente": 9,
+      "riesgo_prioritario": 6,
+      "fortaleza_destacada": 5,
+      "alta_volatilidad": 5,
+      "estable": 2
+    }
+  },
+  "clean_model_note": "Modelo limpio pre-SHAP: no usa cantidad_evaluados_* ni variables derivadas del resultado del mismo periodo.",
+  "generated_at_utc": "2026-07-06T22:32:03.077238+00:00"
+}
