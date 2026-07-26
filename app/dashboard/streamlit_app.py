@@ -48,7 +48,10 @@ def load_metrics():
     """Carga las métricas del modelo."""
     met_path = Path("artifacts/metrics.json")
     if met_path.exists():
-        return json.loads(met_path.read_text(encoding="utf-8"))
+        try:
+            return json.loads(met_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            return None
     return None
 
 @st.cache_data
@@ -121,66 +124,226 @@ else:
 
 st.sidebar.markdown("---")
 
-# Navegación
-page = st.sidebar.radio(
+# Navegación: dos grupos (Principal siempre visible, Detalle técnico colapsado)
+PRINCIPAL_OPTIONS = ["📊 Overview", "🩺 Diagnóstico", "🔮 Predicción"]
+DETALLE_OPTIONS = [
+    "📈 EDA", "📋 Recomendaciones", "✅ Validación", "🤖 Modelos", "🔍 Explicabilidad",
+]
+
+# Inicialización de estado: solo corre en el primer run de la sesión, antes
+# de que cualquiera de los dos radios exista todavía (regla de Streamlit:
+# no se puede reasignar el session_state de un widget ya instanciado en el
+# mismo run). No pasamos index/value a los widgets: el valor se gobierna
+# exclusivamente por session_state[key], patrón "controlled widget".
+if "nav_active_page" not in st.session_state:
+    st.session_state["nav_active_page"] = PRINCIPAL_OPTIONS[0]
+if "nav_principal_radio" not in st.session_state:
+    st.session_state["nav_principal_radio"] = PRINCIPAL_OPTIONS[0]
+if "nav_detalle_radio" not in st.session_state:
+    st.session_state["nav_detalle_radio"] = None
+
+
+def _sync_from_principal():
+    """on_change del radio Principal. Corre entre el run que mostró el
+    radio y el próximo run, así que es seguro escribir acá el
+    session_state del radio Detalle técnico."""
+    st.session_state["nav_active_page"] = st.session_state["nav_principal_radio"]
+    st.session_state["nav_detalle_radio"] = None
+
+
+def _sync_from_detalle():
+    """on_change del radio Detalle técnico. Misma garantía que arriba."""
+    st.session_state["nav_active_page"] = st.session_state["nav_detalle_radio"]
+    st.session_state["nav_principal_radio"] = None
+
+
+def _jump_to_diagnostico():
+    """on_click del botón CTA en Overview. Misma garantía de timing."""
+    st.session_state["nav_active_page"] = "🩺 Diagnóstico"
+    st.session_state["nav_principal_radio"] = "🩺 Diagnóstico"
+    st.session_state["nav_detalle_radio"] = None
+
+
+def _jump_to_modelos():
+    """on_click del botón que lleva a la página de detalle técnico."""
+    st.session_state["nav_active_page"] = "🤖 Modelos"
+    st.session_state["nav_detalle_radio"] = "🤖 Modelos"
+    st.session_state["nav_principal_radio"] = None
+
+
+st.sidebar.radio(
     "Navegación",
-    ["📊 Overview", "📈 EDA", "🔮 Predicción", "🩺 Diagnóstico", "📋 Recomendaciones", "✅ Validación", "🤖 Modelos", "🔍 Explicabilidad"]
+    PRINCIPAL_OPTIONS,
+    key="nav_principal_radio",
+    on_change=_sync_from_principal,
 )
+
+with st.sidebar.expander("Detalle técnico", expanded=False):
+    st.radio(
+        "Más secciones",
+        DETALLE_OPTIONS,
+        key="nav_detalle_radio",
+        on_change=_sync_from_detalle,
+    )
+
+page = st.session_state["nav_active_page"]
+
+# Taxonomía de familias de modelos (fuente de verdad para los 4 tabs del
+# Overview). `modelos` debe coincidir exactamente con el campo `modelo` de
+# artifacts/metrics.json.
+MODEL_FAMILIES = [
+    {
+        "nombre": "Regresión lineal regularizada",
+        "modelos": ["Ridge", "Lasso", "ElasticNet"],
+        "concepto": "combinan variables linealmente y penalizan coeficientes grandes "
+        "(L2 en Ridge, L1 en Lasso, ambas en ElasticNet) para evitar sobreajuste.",
+        "aprende": "que el historial reciente de un programa predice su futuro de "
+        "forma casi lineal: pocas variables bastan para explicar el resultado.",
+    },
+    {
+        "nombre": "Gradient boosting",
+        "modelos": ["XGBoost", "LightGBM", "CatBoost", "HistGradientBoosting"],
+        "concepto": "entrenan árboles de forma secuencial, cada uno corrigiendo los "
+        "errores del anterior.",
+        "aprende": "patrones más complejos, pero no logran superar a un modelo "
+        "lineal simple en estos datos.",
+    },
+    {
+        "nombre": "Ensemble de árboles",
+        "modelos": ["Random Forest"],
+        "concepto": "entrena muchos árboles independientes con muestras aleatorias "
+        "y promedia sus predicciones.",
+        "aprende": "una lectura robusta pero algo menos precisa que el boosting o "
+        "la regresión lineal para este problema.",
+    },
+    {
+        "nombre": "Basado en instancias",
+        "modelos": ["KNN"],
+        "concepto": "predice el promedio de los programas más parecidos en el "
+        "espacio de variables, sin ajustar parámetros.",
+        "aprende": "una aproximación razonable, pero sensible al ruido de sus "
+        "vecinos más cercanos.",
+    },
+]
 
 # ============================================
 # PÁGINA: OVERVIEW
 # ============================================
 if page == "📊 Overview":
     st.title("Modelo de IA para Programas de Medicina en Saber Pro")
-    
+
+    st.markdown(
+        "Este dashboard te muestra, en lenguaje simple, cómo le fue a un "
+        "programa de Medicina, por qué le fue así, y qué tan confiable es "
+        "esa lectura."
+    )
+    st.button(
+        "🩺 Empezar diagnóstico de un programa",
+        type="primary",
+        on_click=_jump_to_diagnostico,
+        key="cta_start_diagnostico",
+    )
+
+    st.markdown("---")
+
+    metrics_data = load_metrics()
+    best_name = metrics_data.get('best_model_by_validation_mae', 'N/A') if metrics_data else 'N/A'
+    best_val = metrics_data.get('best_validation_metrics', {}) if metrics_data else {}
+    best_test = metrics_data.get('best_test_metrics', {}) if metrics_data else {}
+    model_results = metrics_data.get('model_results', []) if metrics_data else []
+
     col1, col2, col3 = st.columns(3)
-    
+
     with col1:
         st.metric("Período", "2020-2025")
     with col2:
         st.metric("Programas", "75")
     with col3:
-        if health_data:
-            st.metric("Modelo", health_data.get('modelo_nombre', 'N/A'))
-        else:
-            st.metric("Modelo", "No disponible")
-    
+        st.metric("Modelo", best_name)
+
     st.markdown("---")
-    
+
+    if metrics_data:
+        st.subheader("🏆 El hallazgo principal")
+        st.success(
+            f"**{best_name}** fue el modelo seleccionado, entre 9 candidatos, "
+            "por tener el menor MAE de validación."
+        )
+        m1, m2, m3 = st.columns(3)
+        with m1:
+            st.metric("Test MAE", f"{best_test.get('MAE', 0):.3f}")
+        with m2:
+            st.metric("Test RMSE", f"{best_test.get('RMSE', 0):.3f}")
+        with m3:
+            st.metric("Test R²", f"{best_test.get('R2', 0):.3f}")
+
+        st.markdown("---")
+        st.subheader("📐 Cómo leer estos números")
+        st.markdown(
+            f"- **MAE** (error absoluto medio): en promedio, {best_name} se "
+            f"equivoca en **{best_test.get('MAE', 0):.1f} puntos** de PROMEDIO_GLOBAL.\n"
+            f"- **RMSE** (raíz del error cuadrático medio): penaliza más los "
+            f"errores grandes; aquí es de **{best_test.get('RMSE', 0):.1f} puntos**.\n"
+            f"- **R²**: qué fracción de la variación real explica el modelo; "
+            f"**{best_test.get('R2', 0):.1%}** aquí — cuanto más cerca de 100%, mejor."
+        )
+
+    st.markdown("---")
+    st.subheader("🧠 Los 4 tipos de modelo que probamos")
+    tabs = st.tabs([f["nombre"] for f in MODEL_FAMILIES])
+    for tab, fam in zip(tabs, MODEL_FAMILIES):
+        with tab:
+            st.markdown(f"**Cómo funciona:** {fam['concepto']}")
+            st.markdown(f"**Qué encontró en estos datos:** {fam['aprende']}")
+            fam_rows = [r for r in model_results if r.get("modelo") in fam["modelos"]]
+            if fam_rows:
+                st.dataframe(pd.DataFrame([
+                    {
+                        "Modelo": r["modelo"],
+                        "Test MAE": round(r["test"]["MAE"], 3),
+                        "Test RMSE": round(r["test"]["RMSE"], 3),
+                        "Test R²": round(r["test"]["R2"], 3),
+                    }
+                    for r in sorted(fam_rows, key=lambda r: r["test"]["MAE"])
+                ]), use_container_width=True, hide_index=True)
+    st.caption("Ver la comparación completa de los 9 modelos en 🤖 Modelos.")
+    st.button(
+        "🤖 Ver el detalle técnico completo",
+        on_click=_jump_to_modelos,
+        key="cta_open_modelos",
+    )
+
+    st.markdown("---")
+    st.subheader("🔎 Un hallazgo de rigor: la fuga de datos")
+    st.markdown(
+        "Una versión anterior de este benchmark declaró ganador a **Ridge**, "
+        "pero una auditoría detectó que tres variables filtraban información "
+        "del mismo año que se intentaba predecir (*target leakage*). Al "
+        f"corregir esas variables, Ridge terminó último (9 de 9) en el "
+        f"conjunto de test y **{best_name}** resultó ser el ganador real."
+    )
+
     st.markdown("""
     ### Sobre este proyecto
-    
-    Este dashboard presenta el análisis y predicción del desempeño de programas de **Medicina** 
-    en las pruebas **Saber Pro** de Colombia, utilizando técnicas de Machine Learning e 
+
+    Este dashboard presenta el análisis y predicción del desempeño de programas de **Medicina**
+    en las pruebas **Saber Pro** de Colombia, utilizando técnicas de Machine Learning e
     Inteligencia Artificial Explicable (XAI).
-    
-    ### Modelos probados
-    
-    Se entrenaron y compararon **9 modelos** diferentes. El seleccionado final es **Ridge**.
-    
-    | Modelo | Tipo |
-    |---|---|
-    | **Ridge** | Regresión lineal regularizada |
-    | Lasso | Regresión lineal regularizada |
-    | ElasticNet | Regresión lineal regularizada |
-    | XGBoost | Gradient boosting |
-    | LightGBM | Gradient boosting |
-    | CatBoost | Gradient boosting |
-    | HistGradientBoosting | Gradient boosting |
-    | Random Forest | Ensemble de árboles |
-    | KNN | Basado en instancias |
-    
-    ### Arquitectura
-    - **API**: FastAPI con endpoints `/health`, `/metadata`, `/predict`
-    - **Dashboard**: Streamlit con visualizaciones interactivas
-    - **Modelo activo**: **Ridge v2** (regresión lineal regularizada, entrenada con datos 2020-2025 y nuevas variables históricas)
-    
+    """)
+    st.markdown(
+        "### Arquitectura\n"
+        "- **API**: FastAPI con endpoints `/health`, `/metadata`, `/predict`\n"
+        "- **Dashboard**: Streamlit con visualizaciones interactivas\n"
+        f"- **Modelo activo**: **{best_name}** (entrenado con datos 2020-2025 "
+        "y variables históricas)"
+    )
+    st.markdown("""
     ### Datos
     - Fuente: ICFES Saber Pro (2020-2025)
     - Filtro: NBC = MEDICINA
     - Variable objetivo: PROMEDIO_GLOBAL
     """)
-    
+
     if metadata_data:
         st.markdown("---")
         st.subheader("📋 Metadatos del Modelo")
@@ -195,8 +358,6 @@ if page == "📊 Overview":
             for feat in metadata_data.get('categorical_features', []):
                 st.markdown(f"- `{feat}`")
     
-    st.markdown("---")
-    st.info("💡 Usa el menú lateral para navegar entre las secciones del dashboard.")
 
 # ============================================
 # PÁGINA: EDA
@@ -912,9 +1073,6 @@ elif page == "✅ Validación":
             | **Lasso** | Regresión lineal regularizada | Similar a Ridge pero con penalización L1, que puede anular variables poco importantes. | Selecciona automáticamente variables relevantes. |
             | **ElasticNet** | Regresión lineal regularizada | Combina penalizaciones L1 y L2. | Balance entre Ridge y Lasso. |
             | **KNN** | Basado en instancias | Predice el promedio de los programas más similares en el espacio de variables. | Simple, no asume forma particular de los datos. |
-            
-            **¿Por qué ganó Ridge?**  
-            Ridge encontró una relación casi lineal entre el historial de puntajes y el puntaje futuro. Al regularizar, evitó que el modelo se ajuste demasiado a ruido. A veces un modelo simple supera a modelos complejos cuando las variables son muy informativas.
             """)
         
         model_results = val_data.get('model_results', [])
@@ -1070,11 +1228,11 @@ elif page == "🤖 Modelos":
         | **KNN** | Basado en instancias | Predice según los programas más similares. |
         """)
         
-        st.info("""
-        **¿Por qué ganó Ridge?**
-        
-        Ridge encontró que la relación entre el historial de puntajes y el puntaje futuro es aproximadamente lineal.
-        La regularización L2 evitó el sobreajuste. A veces un modelo simple supera a modelos complejos cuando
+        st.info(f"""
+        **¿Por qué ganó {best_name}?**
+
+        {best_name} encontró que la relación entre el historial de puntajes y el puntaje futuro es aproximadamente lineal.
+        La regularización evitó el sobreajuste. A veces un modelo simple supera a modelos complejos cuando
         las variables son muy informativas.
         """)
     else:
