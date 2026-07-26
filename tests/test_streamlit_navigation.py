@@ -21,8 +21,8 @@ pytestmark = pytest.mark.skipif(
     reason="real artifacts not present in this environment",
 )
 
-PRINCIPAL_OPTIONS = ["📊 Overview", "🩺 Diagnóstico", "🔮 Predicción"]
-DETALLE_OPTIONS = ["📈 EDA", "📋 Recomendaciones", "✅ Validación", "🤖 Modelos", "🔍 Explicabilidad"]
+PRINCIPAL_OPTIONS = ["📊 Overview", "🔍 Explicación", "🩺 Diagnóstico", "🔮 Predicción"]
+DETALLE_OPTIONS = ["📈 EDA", "📋 Recomendaciones", "✅ Validación", "🤖 Modelos"]
 
 
 def _fresh_app():

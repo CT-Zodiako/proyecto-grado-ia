@@ -44,7 +44,7 @@ def _fresh_app():
 
 
 def _go_to_explicabilidad(at):
-    at.sidebar.radio[1].set_value("🔍 Explicabilidad").run(timeout=30)
+    at.sidebar.radio[0].set_value("🔍 Explicación").run(timeout=30)
     assert not at.exception, f"Explicabilidad page raised: {at.exception}"
     return at
 

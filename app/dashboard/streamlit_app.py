@@ -140,9 +140,9 @@ else:
 st.sidebar.markdown("---")
 
 # Navegación: dos grupos (Principal siempre visible, Detalle técnico colapsado)
-PRINCIPAL_OPTIONS = ["📊 Overview", "🩺 Diagnóstico", "🔮 Predicción"]
+PRINCIPAL_OPTIONS = ["📊 Overview", "🔍 Explicación", "🩺 Diagnóstico", "🔮 Predicción"]
 DETALLE_OPTIONS = [
-    "📈 EDA", "📋 Recomendaciones", "✅ Validación", "🤖 Modelos", "🔍 Explicabilidad",
+    "📈 EDA", "📋 Recomendaciones", "✅ Validación", "🤖 Modelos",
 ]
 
 # Inicialización de estado: solo corre en el primer run de la sesión, antes
@@ -184,6 +184,13 @@ def _jump_to_modelos():
     st.session_state["nav_active_page"] = "🤖 Modelos"
     st.session_state["nav_detalle_radio"] = "🤖 Modelos"
     st.session_state["nav_principal_radio"] = None
+
+
+def _jump_to_explicacion():
+    """on_click del botón CTA en Overview que lleva a Explicación."""
+    st.session_state["nav_active_page"] = "🔍 Explicación"
+    st.session_state["nav_principal_radio"] = "🔍 Explicación"
+    st.session_state["nav_detalle_radio"] = None
 
 
 st.sidebar.radio(
@@ -326,6 +333,16 @@ if page == "📊 Overview":
         "🤖 Ver el detalle técnico completo",
         on_click=_jump_to_modelos,
         key="cta_open_modelos",
+    )
+
+    st.caption(
+        "¿Querés saber cómo se entrenó el modelo y por qué confiamos en sus "
+        "predicciones? Encontrá la metodología completa en 🔍 Explicación."
+    )
+    st.button(
+        "🔍 Ver cómo se entrenó y por qué explicamos así",
+        on_click=_jump_to_explicacion,
+        key="cta_open_explicacion",
     )
 
     st.markdown("---")
@@ -1256,7 +1273,7 @@ elif page == "🤖 Modelos":
 
 # PÁGINA: EXPLICABILIDAD
 # ============================================
-elif page == "🔍 Explicabilidad":
+elif page == "🔍 Explicación":
     st.title("Explicabilidad del Modelo")
     st.markdown(
         "Cómo se corrigió la fuga de datos que invalidó el benchmark "

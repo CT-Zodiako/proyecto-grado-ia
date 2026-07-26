@@ -124,6 +124,14 @@ def test_overview_cta_open_modelos_navigates_to_modelos():
     assert at.sidebar.radio[0].value is None
 
 
+def test_overview_cta_open_explicacion_navigates_to_explicacion():
+    at = _fresh_app()
+    at.button(key="cta_open_explicacion").click().run(timeout=30)
+    assert not at.exception
+    assert at.sidebar.radio[0].value == "🔍 Explicación"
+    assert at.sidebar.radio[1].value is None
+
+
 def test_overview_family_tab_lists_only_its_own_models():
     """Triangulation: the linear-regularized tab must list Ridge/Lasso/
     ElasticNet rows and must NOT list a boosting model like XGBoost — proves
