@@ -91,17 +91,16 @@ Construir un sistema que permita:
 │   ├── validation_results.json
 │   └── README_artifacts.md
 ├── documentos_para_estudiar/
+│   ├── COMO_FUNCIONA_EL_PROYECTO.md  # Explicación completa: datos, entrenamiento, predicción, diagnóstico
 │   ├── GUIA_DASHBOARD.md        # Guía detallada del dashboard
 │   ├── GUIA_PREDICCION.md       # Cómo funciona la predicción
 │   ├── GUIA_TECNICA_MODELOS.md  # Explicación técnica de modelos y algoritmos
 │   └── RETROSPECTIVA_FASE_POR_FASE.md
 ├── modelo_medicina.ipynb        # Notebook principal
 ├── modelo_medicina_executed.ipynb
-├── DOCUMENTACION_EJECUCION.md   # Explicación paso a paso del notebook
 ├── PDR.md                        # Estructura del proyecto por fases
 ├── README_API.md                 # Guía de la API
 ├── README_DASHBOARD.md           # Guía del dashboard
-├── STRICT_FILTER_NOTE.md         # Nota sobre el filtro estricto
 ├── requirements-api.txt          # Dependencias de la API
 ├── requirements-dashboard.txt    # Dependencias del dashboard
 └── .gitignore
@@ -167,7 +166,7 @@ El dashboard estará disponible en:
 http://localhost:8501
 ```
 
-Para más detalles, ver [`app/README.md`](app/README.md).
+Para más detalles, ver [`README_API.md`](README_API.md) y [`README_DASHBOARD.md`](README_DASHBOARD.md).
 
 ---
 
@@ -257,15 +256,13 @@ Ver [`documentos_para_estudiar/GUIA_PREDICCION.md`](documentos_para_estudiar/GUI
 
 | Documento | Propósito |
 |---|---|
-| [`DOCUMENTACION_EJECUCION.md`](DOCUMENTACION_EJECUCION.md) | Explicación paso a paso del notebook con código y resultados. |
+| [`documentos_para_estudiar/COMO_FUNCIONA_EL_PROYECTO.md`](documentos_para_estudiar/COMO_FUNCIONA_EL_PROYECTO.md) | Explicación completa de punta a punta: datos, entrenamiento, artefactos, predicción, diagnóstico y clustering. |
 | [`documentos_para_estudiar/GUIA_DASHBOARD.md`](documentos_para_estudiar/GUIA_DASHBOARD.md) | Cómo funciona el dashboard. |
 | [`documentos_para_estudiar/GUIA_PREDICCION.md`](documentos_para_estudiar/GUIA_PREDICCION.md) | Cómo funciona la predicción, métricas y limitaciones. |
 | [`documentos_para_estudiar/GUIA_TECNICA_MODELOS.md`](documentos_para_estudiar/GUIA_TECNICA_MODELOS.md) | Explicación técnica de cada modelo y algoritmo utilizado. |
 | [`documentos_para_estudiar/RETROSPECTIVA_FASE_POR_FASE.md`](documentos_para_estudiar/RETROSPECTIVA_FASE_POR_FASE.md) | Retrospectiva detallada por fase. |
-| [`app/README.md`](app/README.md) | Instrucciones para levantar API y dashboard. |
 | [`README_API.md`](README_API.md) | Guía de la API. |
 | [`README_DASHBOARD.md`](README_DASHBOARD.md) | Guía del dashboard. |
-| [`STRICT_FILTER_NOTE.md`](STRICT_FILTER_NOTE.md) | Nota sobre el filtro estricto de Medicina. |
 
 ---
 

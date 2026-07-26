@@ -70,6 +70,7 @@ O usá el campo de texto en el sidebar del dashboard para cambiar la URL.
 | **📊 Overview** | Información general del proyecto, metadatos del modelo |
 | **📈 EDA** | Análisis exploratorio: histogramas, distribuciones, filtros |
 | **🔮 Predicción** | Formulario para predecir PROMEDIO_GLOBAL de un programa |
+| **🩺 Diagnóstico** | Cómo/por qué/confianza de un programa en lenguaje simple + contribución exacta de variables (Lasso) + programas similares por perfil histórico (clustering) |
 | **📋 Recomendaciones** | Tabla de recomendaciones filtrable, casos de riesgo |
 | **✅ Validación** | Métricas del modelo, comparación de modelos, residuos |
 | **🤖 Modelos** | Página dedicada con todos los modelos probados, tabla comparativa y explicaciones |
@@ -80,7 +81,8 @@ O usá el campo de texto en el sidebar del dashboard para cambiar la URL.
 - El dashboard carga datos desde `artifacts/` localmente.
 - Las predicciones requieren que la API esté corriendo.
 - Si la API no está disponible, las secciones de predicción mostrarán un warning.
-- Los gráficos SHAP se generan en el notebook, no en el dashboard directamente.
+- Los gráficos SHAP se generan en el notebook, no en el dashboard directamente (y corresponden al modelo v1/Random Forest, no al Lasso vigente — ver `documentos_para_estudiar/GUIA_DASHBOARD.md`).
+- La página Diagnóstico no usa SHAP: calcula la contribución exacta de cada variable a partir de los coeficientes del Lasso.
 
 ## Próximos pasos
 
