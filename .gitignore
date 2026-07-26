@@ -16,3 +16,8 @@ __pycache__/
 
 # OS
 .DS_Store
+
+# Harness/tooling internals (not part of the project)
+.pi-subagents/
+catboost_info/
+openspec/
