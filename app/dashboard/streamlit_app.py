@@ -254,11 +254,6 @@ MODEL_FAMILIES = [
 if page == "📊 Overview":
     st.title("Modelo de IA para Programas de Medicina en Saber Pro")
 
-    st.markdown(
-        "Este dashboard te muestra, en lenguaje simple, cómo le fue a un "
-        "programa de Medicina, por qué le fue así, y qué tan confiable es "
-        "esa lectura."
-    )
     st.button(
         "🩺 Empezar diagnóstico de un programa",
         type="primary",
@@ -293,11 +288,23 @@ if page == "📊 Overview":
         )
         m1, m2, m3 = st.columns(3)
         with m1:
-            st.metric("Test MAE", f"{best_test.get('MAE', 0):.3f}")
+            st.metric(
+                "Test MAE", f"{best_test.get('MAE', 0):.3f}",
+                help="Error Absoluto Medio: en promedio, cuántos puntos se "
+                "equivoca el modelo (misma unidad que el puntaje).",
+            )
         with m2:
-            st.metric("Test RMSE", f"{best_test.get('RMSE', 0):.3f}")
+            st.metric(
+                "Test RMSE", f"{best_test.get('RMSE', 0):.3f}",
+                help="Raíz del Error Cuadrático Medio: como el MAE, pero "
+                "penaliza más fuerte los errores grandes.",
+            )
         with m3:
-            st.metric("Test R²", f"{best_test.get('R2', 0):.3f}")
+            st.metric(
+                "Test R²", f"{best_test.get('R2', 0):.3f}",
+                help="Coeficiente de determinación: qué fracción de la "
+                "variación real logra explicar el modelo (100% = perfecto).",
+            )
 
         st.markdown("---")
         st.subheader("📐 Cómo leer estos números")
@@ -350,9 +357,14 @@ if page == "📊 Overview":
     st.markdown(
         "Una versión anterior de este benchmark declaró ganador a **Ridge**, "
         "pero una auditoría detectó que tres variables filtraban información "
-        "del mismo año que se intentaba predecir (*target leakage*). Al "
+        "del mismo año que se intentaba predecir "
+        '(<abbr title="Fuga de datos: una variable usada para entrenar '
+        'contiene, sin querer, información que en la realidad no estaría '
+        'disponible al momento de predecir — en este caso, datos del mismo '
+        'año que se buscaba predecir."><i>target leakage</i></abbr>). Al '
         f"corregir esas variables, Ridge terminó último (9 de 9) en el "
-        f"conjunto de test y **{best_name}** resultó ser el ganador real."
+        f"conjunto de test y **{best_name}** resultó ser el ganador real.",
+        unsafe_allow_html=True,
     )
 
     st.markdown("""
@@ -384,11 +396,11 @@ if page == "📊 Overview":
         with col1:
             st.markdown("**Variables Numéricas:**")
             for feat in metadata_data.get('numeric_features', []):
-                st.markdown(f"- `{feat}`")
+                st.markdown(f"- {feat}")
         with col2:
             st.markdown("**Variables Categóricas:**")
             for feat in metadata_data.get('categorical_features', []):
-                st.markdown(f"- `{feat}`")
+                st.markdown(f"- {feat}")
     
 
 # ============================================
