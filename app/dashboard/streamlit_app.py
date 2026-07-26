@@ -1340,7 +1340,143 @@ elif page == "🔍 Explicabilidad":
                     st.markdown(f"- ~~`{feat}`~~")
 
         with tab_predice:
-            st.info("Sección en preparación")
+            st.subheader("⚙️ Cómo se genera cada predicción")
+            st.markdown(
+                "Existen **dos caminos** distintos, según la página del "
+                "dashboard, y ambos son reales — no hay simulación:"
+            )
+
+            col_api, col_local = st.columns(2)
+            with col_api:
+                st.markdown("**🔮 Predicción → API**")
+                st.markdown(
+                    "El botón *Predecir* llama a `api_predict()` (esta "
+                    "página, línea ~114), que hace `POST /predict` contra "
+                    "la API FastAPI y se resuelve en "
+                    "`ModelService.predict()` (`app/api/model_service.py`)."
+                )
+            with col_local:
+                st.markdown("**🩺 Diagnóstico → local**")
+                st.markdown(
+                    "🩺 Diagnóstico no llama a la API: carga "
+                    "`model.joblib` directamente y calcula la contribución "
+                    "**exacta** de cada variable con "
+                    "`diagnostics.compute_feature_contributions()`."
+                )
+
+            st.markdown("---")
+            st.markdown(
+                "**La fórmula exacta** (Lasso es lineal, así que no hace "
+                "falta aproximar nada):"
+            )
+            st.code(
+                "contribution = coefficient * scaled_value"
+                "  # scaled_value = (raw_value - scaler_mean) / scaler_scale",
+                language="python",
+            )
+
+            if bundle is not None and hp is not None:
+                coef_items = sorted(
+                    bundle["coefficients"].items(),
+                    key=lambda kv: abs(kv[1]),
+                    reverse=True,
+                )
+                coef_df = pd.DataFrame(coef_items, columns=["feature", "coefficient"])
+                coef_df = coef_df.reindex(
+                    coef_df["coefficient"].abs().sort_values().index
+                )
+                fig = px.bar(
+                    coef_df,
+                    x="coefficient",
+                    y="feature",
+                    orientation="h",
+                    title=(
+                        "Coeficientes no nulos del modelo servido "
+                        f"({hp['model_class']})"
+                    ),
+                    labels={"coefficient": "Coeficiente", "feature": "Variable"},
+                )
+                st.plotly_chart(fig, use_container_width=True)
+                if (
+                    hp["n_nonzero_coefficients"] is not None
+                    and hp["n_coefficients"] is not None
+                ):
+                    st.caption(
+                        f"{hp['n_nonzero_coefficients']} de "
+                        f"{hp['n_coefficients']} coeficientes son no nulos."
+                    )
+
+                st.markdown("---")
+                st.markdown(
+                    "**Ejemplo fijo** (raw → escalado → coeficiente → "
+                    "contribución), un valor fijo por variable — a un "
+                    "desvío estándar por encima de su media:"
+                )
+                example_header = (
+                    "| Variable | Raw | Escalado | Coeficiente | Contribución |\n"
+                    "|---|---|---|---|---|\n"
+                )
+                example_lines = []
+                for feature in diagnostics.DOMINANT_FEATURES:
+                    coef = bundle["coefficients"][feature]
+                    mean = bundle["scaler_mean"][feature]
+                    scale = bundle["scaler_scale"][feature]
+                    raw_value = mean + scale
+                    scaled_value = (raw_value - mean) / scale
+                    contribution = coef * scaled_value
+                    example_lines.append(
+                        f"| `{feature}` | {raw_value:.3f} | "
+                        f"{scaled_value:.3f} | {coef:.3f} | "
+                        f"{contribution:.3f} |"
+                    )
+                st.markdown(example_header + "\n".join(example_lines))
+                st.caption(
+                    "Ejemplo fijo (no interactivo); la versión interactiva "
+                    "con el programa real está en 🩺 Diagnóstico."
+                )
+            else:
+                st.info(
+                    "No se encontró `artifacts/model.joblib`; el gráfico "
+                    "de coeficientes y el ejemplo numérico no están "
+                    "disponibles."
+                )
+
+            st.button(
+                "🩺 Ver el diagnóstico interactivo",
+                key="cta_explica_to_diagnostico",
+                on_click=_jump_to_diagnostico,
+            )
+
+            st.markdown("---")
+            st.markdown("**¿Por qué no usamos SHAP?**")
+            shap_extra = ""
+            if val_data is not None and not val_data.get(
+                "explainability_shap_available_local", True
+            ):
+                shap_extra = (
+                    " De hecho, el propio modelo v1 (Random Forest) ya tuvo "
+                    "que usar el fallback de importancia de impureza "
+                    "porque SHAP no estaba disponible localmente en ese "
+                    "entorno."
+                )
+            st.markdown(
+                "1. Lasso es un modelo **lineal y disperso**: "
+                "`coefficient * scaled_value` **es** la contribución "
+                "exacta de cada variable, no una aproximación como la que "
+                "produce SHAP sobre modelos no lineales.\n"
+                "2. El notebook de SHAP quedó atado al Random Forest v1 y "
+                "ya no corresponde al modelo servido hoy (Lasso)." + shap_extra
+            )
+
+            st.markdown("---")
+            st.subheader("📋 Contrato de Predicción")
+            st.markdown("**Variables requeridas:**")
+            for feat in schema.get("numeric_features", []):
+                st.markdown(f"- `{feat}` (numérica)")
+            for feat in schema.get("categorical_features", []):
+                st.markdown(f"- `{feat}` (categórica)")
+            st.markdown("**Variable objetivo:**")
+            st.markdown(f"- `{schema.get('target', 'promedio_global_anual')}`")
 
         with tab_entreno:
             st.subheader("🎓 Cómo se entrenó el modelo")

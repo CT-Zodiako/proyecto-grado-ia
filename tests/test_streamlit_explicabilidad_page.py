@@ -1,15 +1,14 @@
 """Integration tests for the redesigned Explicabilidad page
 (explicabilidad-methodology-page): tabs skeleton, leakage forensics (§A),
+prediction-mechanism content with the live Lasso coefficient chart (§B),
 training methodology with honest alpha framing (§C), and demotion of the
 stale Random Forest chart into a historical annex (§D).
-
-PR1 scope only — the prediction-mechanism content (§B) and the live Lasso
-coefficient chart ship in PR2 and are NOT asserted here.
 
 Uses Streamlit's AppTest headless runner, same pattern as
 test_streamlit_overview_page.py / test_streamlit_navigation.py.
 """
 import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -19,6 +18,9 @@ from streamlit.testing.v1 import AppTest
 
 ARTIFACTS_DIR = Path(__file__).resolve().parent.parent / "artifacts"
 APP_PATH = Path(__file__).resolve().parent.parent / "app" / "dashboard" / "streamlit_app.py"
+
+sys.path.insert(0, str(APP_PATH.parent))
+import diagnostics  # noqa: E402
 
 pytestmark = pytest.mark.skipif(
     not (ARTIFACTS_DIR / "model.joblib").exists(),
@@ -152,15 +154,102 @@ def test_explicabilidad_alpha_1_0_reported_as_live_served_value():
     assert "1.0" in text
 
 
+def test_explicabilidad_no_stale_ridge_winner_claim():
+    """Regression guard: this project's recurring bug pattern is a stale
+    'Ridge ganó' claim surviving after Lasso became the winner (already
+    fixed once on Overview/Validación/Modelos in a prior change). This page
+    is new and must never introduce that claim in the first place."""
+    at = _fresh_app()
+    _go_to_explicabilidad(at)
+    text = "\n".join(_all_rendered_text(at))
+    assert "¿Por qué ganó Ridge?" not in text
+    assert "El seleccionado final es **Ridge**" not in text
+    metrics = json.loads((ARTIFACTS_DIR / "metrics.json").read_text(encoding="utf-8"))
+    best_name = metrics["best_model_by_validation_mae"]
+    assert best_name == "Lasso"
+    assert f"α = 1.0" in text or "alpha=1.0" in text or "Lasso" in text
+
+
 def test_explicabilidad_annex_expander_present():
     at = _fresh_app()
     _go_to_explicabilidad(at)
     assert len(at.expander) >= 1
 
 
-def test_explicabilidad_placeholder_present_in_prediction_tab():
-    """PR1 leaves the ⚙️ tab with a one-line placeholder; PR2 fills it in."""
+def test_explicabilidad_placeholder_removed_from_prediction_tab():
+    """PR2 supersedes PR1's one-line placeholder with real §B content."""
     at = _fresh_app()
     _go_to_explicabilidad(at)
     text = "\n".join(_all_rendered_text(at))
-    assert "preparación" in text.lower()
+    assert "sección en preparación" not in text.lower()
+
+
+def test_explicabilidad_prediction_paths_named():
+    at = _fresh_app()
+    _go_to_explicabilidad(at)
+    text = "\n".join(_all_rendered_text(at))
+    assert "api_predict" in text
+    assert "POST /predict" in text
+    assert "ModelService.predict" in text
+    assert "compute_feature_contributions" in text
+
+
+def test_explicabilidad_formula_snippet_verbatim():
+    at = _fresh_app()
+    _go_to_explicabilidad(at)
+    codes = [c.value for c in at.code]
+    assert any("contribution = coefficient * scaled_value" in c for c in codes)
+
+
+def test_explicabilidad_worked_example_has_no_selector_widget():
+    at = _fresh_app()
+    _go_to_explicabilidad(at)
+    assert len(at.selectbox) == 0
+    assert len(at.number_input) == 0
+    assert len(at.slider) == 0
+
+
+def test_explicabilidad_coefficient_chart_caption_matches_live_model():
+    at = _fresh_app()
+    _go_to_explicabilidad(at)
+    hp = diagnostics.load_model_hyperparameters(ARTIFACTS_DIR)
+    text = "\n".join(_all_rendered_text(at))
+    assert f"{hp['n_nonzero_coefficients']} de {hp['n_coefficients']}" in text
+    titles = _plotly_titles(at)
+    assert any(hp["model_class"] in (title or "") for title in titles)
+
+
+def test_explicabilidad_cta_navigates_to_diagnostico():
+    at = _fresh_app()
+    _go_to_explicabilidad(at)
+    at.button(key="cta_explica_to_diagnostico").click().run(timeout=30)
+    assert not at.exception, f"CTA click raised: {at.exception}"
+    assert at.sidebar.radio[0].value == "🩺 Diagnóstico"
+    assert at.sidebar.radio[1].value is None
+
+
+def test_explicabilidad_no_shap_rationale_present():
+    at = _fresh_app()
+    _go_to_explicabilidad(at)
+    text = "\n".join(_all_rendered_text(at)).lower()
+    assert "¿por qué no usamos shap?" in text
+    assert "exacta" in text or "exacto" in text
+    # The old broken "install shap in Colab" instructions must never return.
+    assert "colab" not in text
+    assert "pip install shap" not in text
+
+
+def test_explicabilidad_prediction_contract_preserved():
+    """'Contrato de Predicción' (numeric/categorical feature list + target)
+    must be re-indented into the ⚙️ tab, reused verbatim from the old
+    flat page."""
+    at = _fresh_app()
+    _go_to_explicabilidad(at)
+    text = "\n".join(_all_rendered_text(at))
+    assert "Contrato de Predicción" in text
+    with open(ARTIFACTS_DIR / "feature_schema.json", encoding="utf-8") as f:
+        schema = json.load(f)
+    for feat in schema.get("numeric_features", []):
+        assert f"`{feat}`" in text
+    for feat in schema.get("categorical_features", []):
+        assert f"`{feat}`" in text
