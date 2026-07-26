@@ -75,10 +75,12 @@ Construir un sistema que permita:
 │   │   └── schemas.py           # Contratos Pydantic
 │   ├── dashboard/
 │   │   ├── streamlit_app.py     # Dashboard visual (todas las páginas)
-│   │   └── diagnostics.py       # Lógica del diagnóstico IA por programa (sin Streamlit, testeable sola)
+│   │   ├── diagnostics.py       # Lógica del diagnóstico IA por programa (sin Streamlit, testeable sola)
+│   │   └── similar_programs.py  # Clustering de programas por perfil histórico (sin Streamlit, testeable solo)
 │   └── README.md                # Cómo levantar API + Dashboard
 ├── tests/                        # Tests automatizados (pytest)
 │   ├── test_diagnostics.py      # Tests de la lógica de diagnóstico
+│   ├── test_similar_programs.py # Tests del clustering de programas similares
 │   └── test_streamlit_diagnostico_page.py  # Tests de la página del dashboard
 ├── artifacts/
 │   ├── model.joblib             # Modelo entrenado
@@ -180,10 +182,10 @@ source venv/bin/activate
 pytest tests/ -v
 ```
 
-Si todo está bien, vas a ver algo como `30 passed` al final. Estos tests
-cubren tanto la lógica interna del diagnóstico IA como la página completa del
-dashboard (se prueba automáticamente con los 56 programas reales del
-dataset).
+Si todo está bien, vas a ver algo como `54 passed` al final. Estos tests
+cubren la lógica interna del diagnóstico IA, el clustering de programas
+similares, y la página completa del dashboard (se prueba automáticamente con
+los 56 programas reales del dataset).
 
 ---
 
@@ -223,6 +225,14 @@ responde tres preguntas en este orden:
 Esta explicación **no usa la librería SHAP** (a pesar de que el modelo es un
 modelo lineal simple — Lasso — la contribución de cada variable se puede
 calcular de forma exacta con sus coeficientes, sin necesidad de aproximarla).
+
+Además, la misma página tiene un quinto bloque, **"Programas similares"**:
+agrupa los 73 programas de Medicina por su **perfil histórico de desempeño**
+(promedio, tendencia y volatilidad) usando clustering no supervisado
+(K-means), y te muestra 3 a 5 programas parecidos al que elegiste — **nunca**
+por cercanía geográfica, solo por cómo les fue en el tiempo. Sirve para
+responder "¿mi programa es un caso típico o una excepción?" comparando con
+programas que tuvieron un comportamiento parecido, sin importar dónde queden.
 
 ---
 
@@ -316,7 +326,8 @@ curl -X POST "http://localhost:8000/predict" \
 
 ## 🔄 Próximos pasos sugeridos
 
-- [x] Agregar tests automatizados para el diagnóstico IA y la página del dashboard (`tests/`, 30 tests con pytest).
+- [x] Agregar tests automatizados para el diagnóstico IA y la página del dashboard (`tests/`, 54 tests con pytest).
+- [x] Agregar comparación con programas similares (clustering por perfil histórico, sin geografía).
 - [ ] Agregar tests automatizados para la API (`app/api/`).
 - [ ] Corregir un bug detectado en la página "Predicción": dos variables importantes del modelo (`maximo_historico`, `promedio_movil_3_anios`) no se están enviando a la API, que las reemplaza en silencio por un valor promedio (mediana). Ver detalle en el historial de decisiones del proyecto.
 - [ ] Implementar endpoints adicionales: `/recommend`, `/metrics/model`, `/summary/regions`.
