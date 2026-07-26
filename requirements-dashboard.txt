@@ -4,4 +4,5 @@ requests
 plotly
 matplotlib
 numpy
+scikit-learn
 pytest

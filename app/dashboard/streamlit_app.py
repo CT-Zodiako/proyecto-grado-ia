@@ -13,6 +13,7 @@ import plotly.graph_objects as go
 # sys.path, no necesariamente la raíz del repo).
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import diagnostics
+import similar_programs
 
 # Configuración de la página
 st.set_page_config(
@@ -697,6 +698,75 @@ elif page == "🩺 Diagnóstico":
                 st.metric("RMSE (test)", f"{best_metrics.get('RMSE', 0):.2f}")
             with col3:
                 st.metric("R² (test)", f"{best_metrics.get('R2', 0):.3f}")
+
+        st.markdown("---")
+        st.subheader("5. Programas similares")
+        st.markdown(
+            "Programas con un perfil histórico parecido (promedio, tendencia y "
+            "volatilidad) al de este programa, sin tener en cuenta su ubicación."
+        )
+
+        @st.cache_data
+        def build_similar_programs_index_cached(features_df):
+            """Construye el perfil histórico (promedio, tendencia,
+            volatilidad) de los 73 programas y los agrupa una sola vez
+            por sesión (cacheado por contenido de features_df, mismo
+            patrón que load_medicina_features_2025)."""
+            perfiles = []
+            for (id_inst, id_prog), grupo in features_df.groupby(
+                ['ID_INSTITUCION', 'ID_PROGRAMA_ACAD']
+            ):
+                serie = grupo.sort_values('AÑO')['promedio_global_anual'].tolist()
+                perfiles.append(
+                    similar_programs.compute_program_profile(
+                        {"id_institucion": id_inst, "id_programa_acad": id_prog},
+                        serie,
+                    )
+                )
+            return similar_programs.build_similar_programs_index(perfiles)
+
+        try:
+            perfiles, matriz_estandarizada, _scaler, cluster_labels = (
+                build_similar_programs_index_cached(features_df)
+            )
+        except ValueError:
+            # sklearn.cluster.KMeans exige al menos N_CLUSTERS programas para
+            # agrupar. Si el dataset alguna vez tiene menos de 12 programas de
+            # Medicina, degradamos con un aviso en vez de romper toda la
+            # página de Diagnóstico.
+            perfiles, matriz_estandarizada, cluster_labels = [], None, None
+
+        clave_seleccionada = {"id_institucion": id_institucion, "id_programa_acad": id_programa}
+        indice_seleccionado = (
+            next((i for i, p in enumerate(perfiles) if p["key"] == clave_seleccionada), None)
+            if perfiles else None
+        )
+
+        if indice_seleccionado is not None:
+            similares = similar_programs.select_similar_programs(
+                indice_seleccionado, perfiles, matriz_estandarizada, cluster_labels
+            )
+
+            etiqueta_por_clave = {
+                (fila['ID_INSTITUCION'], fila['ID_PROGRAMA_ACAD']): fila['etiqueta_programa']
+                for _, fila in opciones.iterrows()
+            }
+
+            for par in similares:
+                clave_par = (par['key']['id_institucion'], par['key']['id_programa_acad'])
+                etiqueta = etiqueta_por_clave.get(clave_par, "Programa sin etiqueta disponible")
+                with st.container(border=True):
+                    st.markdown(f"**{etiqueta}**")
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.metric("Promedio histórico", f"{par['avg']:.2f}")
+                    with col2:
+                        st.metric("Tendencia", par['trend_label'])
+        else:
+            st.info(
+                "ℹ️ No se pudieron calcular programas similares para esta "
+                "selección (datos insuficientes para el agrupamiento)."
+            )
     else:
         st.error("❌ No se encontraron datos históricos. Verificá que los archivos existan.")
 

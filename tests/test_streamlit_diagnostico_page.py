@@ -76,3 +76,37 @@ def test_diagnostico_page_renders_for_every_real_program_no_exception():
             failures.append((label, str(at.exception)))
 
     assert not failures, f"{len(failures)}/{len(options)} programs raised an exception: {failures[:5]}"
+
+
+def test_diagnostico_page_shows_similar_programs_block():
+    """Regression/acceptance test for similar-programs-clustering: block 5
+    must appear after block 4, and existing blocks 1-4 must be unaffected."""
+    at = _navigate_to_diagnostico()
+    subheaders = [s.value for s in at.subheader]
+    assert subheaders == [
+        "1. ¿Qué programa querés diagnosticar?",
+        "2. Cómo le fue",
+        "3. Por qué",
+        "4. Qué tan confiable es esto",
+        "5. Programas similares",
+    ]
+    assert not at.exception
+
+
+def test_diagnostico_page_similar_programs_actually_render_content():
+    """Regression guard for a silent-empty block: asserts the similar-
+    programs block actually renders 3-5 peer cards (not just its header),
+    each with a label, average, and trend metric — catches the case where
+    the block silently renders nothing (e.g. a lookup miss) while still
+    passing a header-only assertion."""
+    at = _navigate_to_diagnostico()
+    assert not at.exception
+
+    # Peer cards are rendered as st.container(border=True) blocks containing
+    # st.markdown("**label**") + two st.metric widgets ("Promedio histórico",
+    # "Tendencia"). Count metric widgets labeled "Tendencia" as a proxy for
+    # "how many peer cards actually rendered".
+    tendencia_metrics = [m for m in at.metric if m.label == "Tendencia"]
+    assert 3 <= len(tendencia_metrics) <= 5, (
+        f"Expected 3-5 similar-program cards, got {len(tendencia_metrics)}"
+    )
