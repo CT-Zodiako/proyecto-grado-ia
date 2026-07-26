@@ -16,6 +16,7 @@ from app.dashboard.diagnostics import (
     compute_feature_contributions,
     dominant_contribution,
     load_diagnostic_model_bundle,
+    load_model_hyperparameters,
     select_narrative_template,
 )
 
@@ -217,3 +218,23 @@ def test_load_diagnostic_model_bundle_smoke_test_real_artifacts():
 def test_load_diagnostic_model_bundle_missing_artifacts_raises(tmp_path):
     with pytest.raises(FileNotFoundError):
         load_diagnostic_model_bundle(tmp_path)
+
+
+# ---------------------------------------------------------------------------
+# load_model_hyperparameters — real artifacts smoke test
+# ---------------------------------------------------------------------------
+
+@pytest.mark.skipif(
+    not (ARTIFACTS_DIR / "model.joblib").exists(),
+    reason="artifacts/model.joblib not present in this environment",
+)
+def test_load_model_hyperparameters_returns_lasso_alpha_and_sparsity():
+    hp = load_model_hyperparameters(ARTIFACTS_DIR)
+    assert hp["model_class"] == "Lasso"
+    assert hp["alpha"] == pytest.approx(1.0)
+    assert 0 < hp["n_nonzero_coefficients"] < hp["n_coefficients"]
+
+
+def test_load_model_hyperparameters_missing_model_raises(tmp_path):
+    with pytest.raises(FileNotFoundError):
+        load_model_hyperparameters(tmp_path)

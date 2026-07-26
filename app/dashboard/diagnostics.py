@@ -240,3 +240,41 @@ def load_diagnostic_model_bundle(artifacts_dir: Path) -> DiagnosticModelBundle:
         scaler_scale=scaler_scale,
         model_name=model_name,
     )
+
+
+class ModelHyperparameters(TypedDict):
+    model_class: str  # e.g. "Lasso" — type(model).__name__, not the schema
+    alpha: float | None  # None for models without an alpha
+    n_coefficients: int | None  # len(model.coef_), incl. one-hot columns; None if no coef_
+    n_nonzero_coefficients: int | None  # int((model.coef_ != 0).sum()); None if no coef_
+
+
+def load_model_hyperparameters(artifacts_dir: Path) -> ModelHyperparameters:
+    """Read the FITTED estimator's hyperparameters + coefficient sparsity
+    straight from ``model.joblib``.
+
+    Raises FileNotFoundError if the model is missing (mirrors
+    ``load_diagnostic_model_bundle``). Second and last disk-touching
+    function in this module.
+    """
+    model_path = artifacts_dir / "model.joblib"
+    if not model_path.exists():
+        raise FileNotFoundError(f"Model artifact not found: {model_path}")
+
+    pipeline = joblib.load(model_path)
+    estimator = pipeline.named_steps["model"]
+
+    alpha = getattr(estimator, "alpha", None)
+    if hasattr(estimator, "coef_"):
+        n_coefficients = int(len(estimator.coef_))
+        n_nonzero_coefficients = int((estimator.coef_ != 0).sum())
+    else:
+        n_coefficients = None
+        n_nonzero_coefficients = None
+
+    return ModelHyperparameters(
+        model_class=type(estimator).__name__,
+        alpha=alpha,
+        n_coefficients=n_coefficients,
+        n_nonzero_coefficients=n_nonzero_coefficients,
+    )

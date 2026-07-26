@@ -79,6 +79,21 @@ def load_medicina_features_2025():
     # Fallback al histórico original si no existe el extendido
     return load_medicina_features()
 
+@st.cache_resource
+def load_explainability_model_facts():
+    """Bundle (coeficientes + scaler) e hiperparámetros del modelo servido.
+
+    Devuelve (None, None) si artifacts/model.joblib no existe, para que la
+    página de Explicabilidad siga renderizando la metodología sin el modelo.
+    """
+    try:
+        return (
+            diagnostics.load_diagnostic_model_bundle(Path("artifacts")),
+            diagnostics.load_model_hyperparameters(Path("artifacts")),
+        )
+    except Exception:
+        return (None, None)
+
 # Funciones de API
 def api_health():
     """Verifica el estado de la API."""
@@ -1243,75 +1258,201 @@ elif page == "🤖 Modelos":
 # ============================================
 elif page == "🔍 Explicabilidad":
     st.title("Explicabilidad del Modelo")
-    
+    st.markdown(
+        "Cómo se corrigió la fuga de datos que invalidó el benchmark "
+        "original, cómo se genera cada predicción hoy, y cómo se entrenó el "
+        "modelo servido — con citas explícitas a cada fuente."
+    )
+
     schema = load_feature_schema()
     val_data = load_validation_results()
-    
+    metrics_data = load_metrics()
+    bundle, hp = load_explainability_model_facts()
+
     if schema:
-        st.success("📁 Schema cargado")
-        
-        # Importancia de features
-        st.subheader("📊 Importancia de Variables")
-        
-        top_features = val_data.get('explainability_top_rf_original_features', []) if val_data else []
-        
-        if top_features:
-            feat_df = pd.DataFrame(top_features)
-            feat_df = feat_df.sort_values('importance', ascending=True)
-            
-            fig = px.bar(
-                feat_df,
-                x='importance',
-                y='feature_original',
-                orientation='h',
-                title="Importancia de Variables (Random Forest)",
-                labels={'importance': 'Importancia', 'feature_original': 'Variable'}
+        tab_fuga, tab_predice, tab_entreno = st.tabs(
+            ["🧪 Fuga de datos", "⚙️ Cómo se predice", "🎓 Cómo se entrenó"]
+        )
+
+        with tab_fuga:
+            st.subheader("🧪 Corrección de fuga de datos (target leakage)")
+
+            if val_data and val_data.get("leakage_correction_2026_07_13"):
+                st.warning(val_data["leakage_correction_2026_07_13"])
+
+            st.markdown(
+                "El benchmark original de 9 modelos declaró a Ridge ganador "
+                "(MAE 0.670 / R² 0.996) porque 3 features usaban el **target "
+                "del mismo año** que se intentaba predecir:"
             )
-            st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.info("No se encontraron datos de importancia de features.")
-        
-        # Variables excluidas
+
+            leakage_rows = [
+                (
+                    "tasa_crecimiento_anual",
+                    "(target − anterior) / anterior",
+                    "(anterior − ante_anterior) / ante_anterior",
+                ),
+                (
+                    "diferencia_maximo_historico",
+                    "target − maximo_historico",
+                    "anterior − maximo_historico",
+                ),
+                (
+                    "ranking_departamento",
+                    "ranking del target del mismo año",
+                    "ranking de promedio_global_anterior (año anterior)",
+                ),
+            ]
+            for feature, formula_leak, formula_fix in leakage_rows:
+                st.markdown(f"**`{feature}`**")
+                st.code(
+                    f"Con fuga:      {formula_leak}\n"
+                    f"Corregida:     {formula_fix}",
+                    language="text",
+                )
+
+            ridge_test_mae = None
+            if metrics_data:
+                for entry in metrics_data.get("model_results", []):
+                    if entry.get("modelo") == "Ridge":
+                        ridge_test_mae = entry["test"]["MAE"]
+                        break
+            if ridge_test_mae is not None:
+                st.caption(
+                    f"Con las 3 features corregidas, Ridge deja de ganar "
+                    f"(test MAE {ridge_test_mae:.3f}); el ganador limpio y "
+                    "actual es Lasso."
+                )
+
+            st.markdown("---")
+            st.markdown(
+                "**Importante:** las 3 features de arriba se "
+                "**recalcularon, no se eliminaron** — siguen entre las 13 "
+                "numéricas del modelo servido (las 3 terminan con "
+                "coeficiente Lasso cero, pero siguen presentes en el "
+                "dataset). Esto es distinto de la siguiente lista, que son "
+                "variables del **mismo período** que nunca entran al modelo:"
+            )
+            excluded = schema.get("excluded_features", [])
+            if excluded:
+                st.markdown("El modelo **no usa** estas variables:")
+                for feat in excluded:
+                    st.markdown(f"- ~~`{feat}`~~")
+
+        with tab_predice:
+            st.info("Sección en preparación")
+
+        with tab_entreno:
+            st.subheader("🎓 Cómo se entrenó el modelo")
+
+            st.markdown("**División temporal de los datos** (sin mezcla aleatoria):")
+            st.markdown(
+                "| Conjunto | Años | Filas |\n"
+                "|---|---|---|\n"
+                "| Entrenamiento | 2020-2023 | 174 |\n"
+                "| Validación | 2024 | 62 |\n"
+                "| Test | 2025 | 64 |"
+            )
+            split_strategy_v2 = val_data.get("model_split_strategy_v2") if val_data else None
+            if split_strategy_v2:
+                st.caption(
+                    f"Estrategia: `{split_strategy_v2}` — filas verificadas "
+                    "contra los predicados de split de "
+                    "`scripts/hp_search_linear_report.py`."
+                )
+
+            n_numeric = len(schema.get("numeric_features", []))
+            n_categorical = len(schema.get("categorical_features", []))
+            st.markdown(
+                f"**{n_numeric + n_categorical} features** en total: "
+                f"{n_numeric} numéricas + {n_categorical} categóricas, "
+                "transformadas por un `ColumnTransformer` compartido:"
+            )
+            st.code(
+                "ColumnTransformer([\n"
+                "    ('num', Pipeline([SimpleImputer(strategy='median'), StandardScaler()])),\n"
+                "    ('cat', OneHotEncoder(handle_unknown='ignore')),\n"
+                "]) -> Lasso",
+                language="python",
+            )
+
+            modelos_probados_v2 = val_data.get("modelos_probadados_v2", []) if val_data else []
+            if modelos_probados_v2:
+                st.markdown(
+                    f"Se compararon **{len(modelos_probados_v2)} algoritmos** "
+                    "por MAE de validación (selección de algoritmo, no ajuste "
+                    "por algoritmo); solo los 3 modelos lineales (Ridge, "
+                    "Lasso, ElasticNet) fueron ajustados posteriormente."
+                )
+
+            st.markdown("---")
+            st.markdown("**Honestidad sobre el hiperparámetro α (alpha):**")
+            if hp is not None and hp["alpha"] is not None:
+                st.success(
+                    f"El modelo servido usa α = {hp['alpha']:.1f} — el valor "
+                    "por defecto de scikit-learn; no se buscó al entrenar el "
+                    "benchmark original."
+                )
+            st.info(
+                "**Investigación de hiperparámetros (posterior, de solo "
+                "lectura)**: `scripts/hp_search_linear_report.py` recorrió "
+                "una grilla de α (y l1_ratio para ElasticNet) sobre el mismo "
+                "split temporal. Un α menor (~0.178, tanto en Lasso como en "
+                "ElasticNet) reduce el MAE de validación en ~0.194, pero al "
+                "hacerlo el modelo pasa de 4 a 10 coeficientes no nulos: "
+                "admite 2 features históricas adicionales y **4 variables "
+                "dummy geográficas** (departamento/región/municipio) — "
+                "juzgado sobreajuste en un dataset de 373 filas, no señal "
+                "real. La ventaja nominal de ElasticNet (0.0034 de MAE) se "
+                "consideró y se descartó por la misma razón. Por eso se "
+                "decidió deliberadamente mantener α = 1.0 en el modelo "
+                "activo. Estos números son reproducibles con "
+                "`venv/bin/python scripts/hp_search_linear_report.py`."
+            )
+
         st.markdown("---")
-        st.subheader("🚫 Variables Excluidas")
-        
-        excluded = schema.get('excluded_features', [])
-        if excluded:
-            st.markdown("El modelo limpio **no usa** estas variables:")
-            for feat in excluded:
-                st.markdown(f"- ~~`{feat}`~~")
-        
-        # SHAP
-        st.markdown("---")
-        st.subheader("🔮 SHAP (Inteligencia Artificial Explicable)")
-        
-        st.info("""
-        💡 **Nota sobre SHAP:**
-        
-        Los gráficos SHAP (Summary, Dependence, Waterfall) se generan automáticamente 
-        cuando el paquete `shap` está instalado en el entorno de ejecución.
-        
-        En este entorno local, SHAP no está instalado, pero el notebook `modelo_medicina.ipynb` 
-        incluye el código completo para generar estos gráficos cuando `shap` esté disponible.
-        
-        Para ver los gráficos SHAP:
-        1. Instalá `shap` en Colab: `!pip install shap`
-        2. Ejecutá la sección 7 del notebook
-        3. Los gráficos se renderizarán automáticamente
-        """)
-        
-        # Contrato de predicción
-        st.markdown("---")
-        st.subheader("📋 Contrato de Predicción")
-        
-        st.markdown("**Variables requeridas:**")
-        for feat in schema.get('numeric_features', []):
-            st.markdown(f"- `{feat}` (numérica)")
-        for feat in schema.get('categorical_features', []):
-            st.markdown(f"- `{feat}` (categórica)")
-        
-        st.markdown("**Variable objetivo:**")
-        st.markdown(f"- `{schema.get('target', 'promedio_global_anual')}`")
+        with st.expander(
+            "📦 Anexo: modelo histórico v1 (Random Forest) — no es el modelo servido",
+            expanded=False,
+        ):
+            if val_data:
+                shap_note = (
+                    "no disponible"
+                    if not val_data.get("explainability_shap_available_local", True)
+                    else "disponible"
+                )
+                fallback_note = (
+                    "se usó importancia de impureza como fallback"
+                    if val_data.get("explainability_fallback_used")
+                    else "no requirió fallback"
+                )
+                st.warning(
+                    "Evidencia histórica del modelo v1: estrategia "
+                    f"`{val_data.get('model_split_strategy', '?')}`, "
+                    f"{val_data.get('model_feature_count', '?')} features, "
+                    f"SHAP {shap_note} localmente → {fallback_note}."
+                )
+
+            top_features = (
+                val_data.get("explainability_top_rf_original_features", [])
+                if val_data
+                else []
+            )
+            if top_features:
+                feat_df = pd.DataFrame(top_features)
+                feat_df = feat_df.sort_values("importance", ascending=True)
+
+                fig = px.bar(
+                    feat_df,
+                    x="importance",
+                    y="feature_original",
+                    orientation="h",
+                    title="Importancia de Variables — Random Forest v1 (histórico)",
+                    labels={"importance": "Importancia", "feature_original": "Variable"},
+                )
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("No se encontraron datos de importancia de features históricos.")
     else:
         st.error("❌ No se encontró el schema de features.")
 
