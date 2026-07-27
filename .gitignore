@@ -26,3 +26,12 @@ openspec/
 documentos_para_estudiar/
 # Not for the public repo
 PDR.md
+
+# User's working punch-list, not project documentation
+correciones.md
+
+# Tooling internal state
+.pi/gentle-ai/sdd-preflight.json
+
+# Background research content, kept locally only
+Análisis Técnico y Estructural del Examen Saber Pro: Módulo de Fundamentación en Diagnóstico y Tratamiento Médico.md
