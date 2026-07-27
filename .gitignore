@@ -21,3 +21,6 @@ __pycache__/
 .pi-subagents/
 catboost_info/
 openspec/
+
+# Private study material, not for the public repo
+documentos_para_estudiar/
