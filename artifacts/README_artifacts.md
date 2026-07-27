@@ -19,12 +19,12 @@ Estos archivos fueron generados desde `modelo_medicina.ipynb` para alimentar la 
 - `metrics.json`: métricas comparativas de todos los modelos probados.
 - `metrics_v1.json`: métricas del modelo v1.
 - `metrics_v2.json`: métricas comparativas v2.
-- `medicina_features.csv`: dataset histórico 2020-2024.
-- `medicina_features_2025.csv`: observaciones de 2025.
-- `medicina_features_2020_2025.csv`: dataset extendido 2020-2025 con variables recalculadas.
-- `medicina_anual_2025.csv`: agregación anual de 2025 por institución-programa.
+- `medicina_features_2020_2024_legacy.csv`: dataset histórico 2020-2024.
+- `medicina_features_2025_solo.csv`: observaciones de 2025.
+- `dataset_entrenamiento_2020_2025.csv`: dataset extendido 2020-2025 con variables recalculadas.
+- `agregacion_anual_2025_pre_features.csv`: agregación anual de 2025 por institución-programa.
 - `inputs_prediccion_2025.csv`: inputs calculados para predecir 2025.
-- `predicciones_test_2025_v2.csv`: predicciones vs valores reales de 2025.
+- `predicciones_vs_reales_test_2025.csv`: predicciones vs valores reales de 2025.
 - `recomendaciones_programa.csv`: recomendaciones por institución-programa (último año disponible).
 - `validation_results.json`: resumen global de validaciones (fusionado con v2).
 

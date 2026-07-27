@@ -45,7 +45,7 @@ from app.dashboard.diagnostics import DOMINANT_FEATURES  # noqa: E402
 ARTIFACTS_DIR = REPO_ROOT / "artifacts"
 FEATURE_SCHEMA_PATH = ARTIFACTS_DIR / "feature_schema.json"
 METRICS_PATH = ARTIFACTS_DIR / "metrics.json"
-DATASET_PATH = ARTIFACTS_DIR / "medicina_features_2020_2025.csv"
+DATASET_PATH = ARTIFACTS_DIR / "dataset_entrenamiento_2020_2025.csv"
 
 # Pre-registered search space (PR2 consumes this; PR1 only asserts it is a
 # superset of today's production config).

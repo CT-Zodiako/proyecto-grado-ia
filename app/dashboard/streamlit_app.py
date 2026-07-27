@@ -65,7 +65,7 @@ def load_feature_schema():
 @st.cache_data
 def load_medicina_features():
     """Carga el dataset histórico con features de medicina."""
-    feat_path = Path("artifacts/medicina_features.csv")
+    feat_path = Path("artifacts/medicina_features_2020_2024_legacy.csv")
     if feat_path.exists():
         return pd.read_csv(feat_path, encoding="utf-8")
     return None
@@ -73,7 +73,7 @@ def load_medicina_features():
 @st.cache_data
 def load_medicina_features_2025():
     """Carga el dataset extendido con datos de 2025."""
-    feat_path = Path("artifacts/medicina_features_2020_2025.csv")
+    feat_path = Path("artifacts/dataset_entrenamiento_2020_2025.csv")
     if feat_path.exists():
         return pd.read_csv(feat_path, encoding="utf-8")
     # Fallback al histórico original si no existe el extendido

@@ -44,12 +44,12 @@ from mejorar_modelo import build_pipeline
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 ARTIFACTS_DIR = REPO_ROOT / "artifacts"
-DATASET_PATH = ARTIFACTS_DIR / "medicina_features_2020_2025.csv"
+DATASET_PATH = ARTIFACTS_DIR / "dataset_entrenamiento_2020_2025.csv"
 METRICS_PATH = ARTIFACTS_DIR / "metrics.json"
 
 REAL_DATA_MISSING = not (DATASET_PATH.exists() and METRICS_PATH.exists())
 REAL_DATA_SKIP_REASON = (
-    "artifacts/medicina_features_2020_2025.csv or artifacts/metrics.json "
+    "artifacts/dataset_entrenamiento_2020_2025.csv or artifacts/metrics.json "
     "not present in this environment"
 )
 

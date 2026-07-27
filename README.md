@@ -86,7 +86,7 @@ Construir un sistema que permita:
 │   ├── model.joblib             # Modelo entrenado
 │   ├── feature_schema.json      # Contrato de entrada
 │   ├── metrics.json             # Métricas del modelo
-│   ├── medicina_features.csv    # Historial completo por programa-año
+│   ├── medicina_features_2020_2024_legacy.csv    # Historial completo por programa-año
 │   ├── recomendaciones_programa.csv
 │   ├── validation_results.json
 │   └── README_artifacts.md

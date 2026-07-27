@@ -2,7 +2,7 @@
 ai-diagnostic-view), using Streamlit's AppTest headless runner.
 
 These tests exercise the real UI wiring end-to-end against the real
-artifacts (model.joblib, feature_schema.json, medicina_features_2020_2025.csv)
+artifacts (model.joblib, feature_schema.json, dataset_entrenamiento_2020_2025.csv)
 — unlike tests/test_diagnostics.py, which only unit-tests the pure logic in
 diagnostics.py with a synthetic fixture. This closes the gap flagged by
 review-reliability: the glue code that feeds diagnostics.py (selector,
@@ -10,7 +10,7 @@ historial filtering, on-the-fly maximo_historico/promedio_movil_3_anios
 recomputation) previously had zero automated coverage.
 
 Requires: real artifacts/ directory (model.joblib, feature_schema.json,
-medicina_features_2020_2025.csv). Skipped if artifacts are absent, same
+dataset_entrenamiento_2020_2025.csv). Skipped if artifacts are absent, same
 policy as the smoke test in test_diagnostics.py.
 """
 from pathlib import Path
@@ -25,7 +25,7 @@ APP_PATH = Path(__file__).resolve().parent.parent / "app" / "dashboard" / "strea
 
 pytestmark = pytest.mark.skipif(
     not (ARTIFACTS_DIR / "model.joblib").exists()
-    or not (ARTIFACTS_DIR / "medicina_features_2020_2025.csv").exists(),
+    or not (ARTIFACTS_DIR / "dataset_entrenamiento_2020_2025.csv").exists(),
     reason="real artifacts not present in this environment",
 )
 

@@ -152,7 +152,7 @@ def main():
     print('=== Mejora del modelo de Medicina Saber Pro ===\n')
 
     # 1. Cargar datos
-    df = pd.read_csv('artifacts/medicina_features_2020_2025.csv', encoding='utf-8')
+    df = pd.read_csv('artifacts/dataset_entrenamiento_2020_2025.csv', encoding='utf-8')
     print(f'Dataset cargado: {df.shape[0]} filas, {df.shape[1]} columnas')
 
     # 2. Agregar nuevas features
@@ -428,8 +428,8 @@ def main():
         test_results = test_data[['AÑO', 'NOMBRE_INSTITUCION', 'NOMBRE_MUNICIPIO', 'NOMBRE_DEPARTAMENTO', target]].copy()
         test_results['prediccion'] = preds_test
         test_results['error_absoluto'] = np.abs(test_results[target] - test_results['prediccion'])
-        test_results.to_csv('artifacts/predicciones_test_2025_v2.csv', index=False, encoding='utf-8')
-        print(f'\nPredicciones test 2025 exportadas: artifacts/predicciones_test_2025_v2.csv')
+        test_results.to_csv('artifacts/predicciones_vs_reales_test_2025.csv', index=False, encoding='utf-8')
+        print(f'\nPredicciones test 2025 exportadas: artifacts/predicciones_vs_reales_test_2025.csv')
         print(f'MAE test 2025: {test_results["error_absoluto"].mean():.3f}')
         print('\nTop 5 errores más grandes:')
         print(test_results.nlargest(5, 'error_absoluto')[['NOMBRE_INSTITUCION', target, 'prediccion', 'error_absoluto']].to_string(index=False))
